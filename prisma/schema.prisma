@@ -9,69 +9,26 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  password      String? // ← ADICIONA ESSA LINHA
-  plan          String    @default("FREE")
-  accounts      Account[]
-  sessions      Session[]
-
-  links            Link[]
+  id               String            @id @default(cuid())
+  name             String?
+  email            String?           @unique
+  emailVerified    DateTime?
+  image            String?
+  password         String?
+  plan             String            @default("FREE")
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  instagramConfigs InstagramConfig[]
+  links            Link[] // ADICIONA ESSA LINHA
   settings         Settings?
-  telegramPosts    TelegramPost[]
-  telegramChannels TelegramChannel[]
-  whatsappGroups   WhatsappGroup[]
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  groups    Group[]
-  postLogs  PostLog[]
-}
+  accounts          Account[]
+  sessions          Session[]
+  instagramAccounts InstagramAccount[]
+  channelConfigs    ChannelConfig[]
+  postLogs          PostLog[]
 
-model TelegramPost {
-  id        String   @id @default(cuid())
-  userId    String
-  channelId String?
-  message   String
-  sent      Boolean  @default(true)
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id])
-}
-
-model TelegramChannel {
-  id        String   @id @default(cuid())
-  userId    String
-  chatId    String
-  name      String
-  avatar    String?
-  interval  Int?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-
-  user User @relation(fields: [userId], references: [id])
-
-  @@unique([userId, chatId])
-}
-
-model WhatsappGroup {
-  id        String   @id @default(cuid())
-  userId    String
-  groupId   String
-  name      String
-  avatar    String?
-  interval  Int?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-
-  user User @relation(fields: [userId], references: [id])
-
-  @@unique([userId, groupId])
+  @@map("users")
 }
 
 model Account {
@@ -91,6 +48,7 @@ model Account {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@map("accounts")
 }
 
 model Session {
@@ -99,6 +57,8 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
 }
 
 model VerificationToken {
@@ -107,105 +67,144 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+  @@map("verification_tokens")
 }
 
-model Link {
-  id        String @id @default(cuid())
-  title     String
-  url       String
-  shortCode String @unique
-  clicks    Int    @default(0)
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  groupId String?
-  group   Group?  @relation(fields: [groupId], references: [id])
-
-  createdAt DateTime @default(now())
-}
-
-model Group {
-  id              String  @id @default(cuid())
-  name            String
-  internalCode    String
-  postAuto        Boolean @default(false)
-  intervalMinutes Int     @default(30)
-  randomMode      Boolean @default(false)
-  selectionMode   String  @default("recent")
-
-  telegramToken  String @default("")
-  telegramChatId String @default("")
-
-  whatsappMessage String @default("")
-
-  shopeeAffiliateId String @default("")
-  shopeeSubId       String @default("")
-
-  postTitle      String @default("")
-  postPriceLabel String @default("")
-  postCta        String @default("")
-
-  lastcreatedAt DateTime?
-  isActive      Boolean   @default(true)
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  links Link[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-}
-
-model Settings {
+model InstagramAccount {
   id     String @id @default(cuid())
-  userId String @unique
+  userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  telegramBotToken       String?
-  telegramChatId         String?
-  telegramParseMode      String? @default("HTML")
-  telegramDisablePreview Boolean @default(false)
-  telegramPinAfterSend   Boolean @default(false)
-  telegramDefaultMessage String? @default("")
-  telegramSignature      String? @default("")
-  telegramConnected      Boolean @default(false)
-
-  whatsappGroupName         String? @default("")
-  whatsappInviteLink        String? @default("")
-  whatsappDefaultMessage    String? @default("")
-  whatsappFooterCta         String? @default("")
-  whatsappIncludeInviteLink Boolean @default(false)
-  whatsappShortenText       Boolean @default(false)
-  whatsappConnected         Boolean @default(false)
-
-  // WhatsApp - cada usuário conecta a própria API
-  whatsappNumber     String? // Número conectado
-  whatsappGroupId    String? // ID do grupo escolhido
-  whatsappInstanceId String?
-  whatsappToken      String?
-
-  // Afiliados
-  aliexpressAppKey     String?
-  aliexpressSecret     String?
-  aliexpressTrackingId String?
-
-  amazonAccessKey    String?
-  amazonSecretKey    String?
-  amazonAssociateTag String?
-
-  shopeeAffiliateId String?
-  shopeeAppKey      String?
-
-  mlAffiliateLink String?
-  mlCode          String?
-
-  sheinAffiliateCode String?
-  sheinTrackingId    String?
+  instagramUserId String  @unique
+  username        String
+  accountId       String
+  accessToken     String  @db.Text
+  profilePicture  String?
+  followersCount  Int     @default(0)
+  isActive        Boolean @default(true)
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  updatedAt DateTime @updatedAt
+
+  config         InstagramConfig?
+  posts          InstagramPost[]
+  channelConfigs ChannelConfig[] // ADICIONADO: relação reversa
+
+  @@index([userId])
+}
+
+model instagramConfig {
+  id        String           @id @default(cuid())
+  accountId String           @unique
+  userId    String // ADICIONA ESSA LINHA
+  account   InstagramAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade) // ADICIONA ESSA LINHA
+
+  postInterval    Int?
+  hashtagsDefault String   @default("#ofertas #promocao")
+  linkInBio       String   @default("")
+  templateId      String   @default("default")
+  showPrice       Boolean  @default(true)
+  showDiscount    Boolean  @default(true)
+  autoPublish     Boolean  @default(true)
+  publishStories  Boolean  @default(false)
+  scheduleEnabled Boolean  @default(false)
+  scheduleTimes   String[] @default([])
+
+  shopeeId       String @default("")
+  amazonId       String @default("")
+  aliexpressId   String @default("")
+  mercadoLivreId String @default("")
+  sheinId        String @default("")
+
+  productLink    String  @default("")
+  keepLinkInPost Boolean @default(true)
+  header         String  @default("")
+  footer         String  @default("")
+  precoOriginal  String  @default("")
+  precoAtual     String  @default("")
+  sufixoPreco    String  @default("")
+  precoParcelado String  @default("")
+  descricao      String  @default("")
+  corTitulo      String  @default("#000000")
+  corPreco       String  @default("#FFFFFF")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId]) // ADICIONA ESSE INDEX
+}
+
+model InstagramPost {
+  id        String           @id @default(cuid())
+  accountId String
+  account   InstagramAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  instagramMediaId String?
+  caption          String  @db.Text
+  imageUrl         String?
+  productUrl       String?
+  status           String  @default("draft") // draft, scheduled, published, failed
+
+  scheduledFor DateTime?
+  publishedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([accountId])
+  @@index([status])
+}
+
+model ChannelConfig {
+  id                 String @id @default(cuid())
+  userId             String
+  instagramAccountId String @unique
+
+  // Configurações de post
+  isActive   Boolean @default(true)
+  postInLoop Boolean @default(false)
+  interval   Int?
+  random     Boolean @default(false)
+  horaInicio String?
+  horaFim    String?
+  idioma     String?
+  moeda      String?
+  pais       String?
+
+  // Conteúdo do post
+  productLink     String?
+  keepLinkInPost  Boolean @default(true)
+  header          String?
+  footer          String?
+  shopeeVideoLink String?
+  useShopeeVideo  Boolean @default(false)
+  precoOriginal   String?
+  precoAtual      String?
+  sufixoPreco     String?
+  precoParcelado  String?
+  descricao       String?
+  agendamento     String?
+
+  // Template
+  corTitulo String?
+  corPreco  String?
+
+  // Cupom
+  tipoCupom     String?
+  valorDesconto String?
+  valorMinimo   String?
+  valorMaximo   String?
+  codigoCupom   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  instagramAccount InstagramAccount @relation(fields: [instagramAccountId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("channel_configs")
 }
 
 model PostLog {
@@ -213,17 +212,45 @@ model PostLog {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  status String // success | error | skipped
-  detail String? // Mensagem do log
+  status  String // success | error | skipped
+  detail  String? // Mensagem do log
+  postUrl String? // URL do post criado
 
-  groupId        String?
-  groupName      String?
-  linkId         String?
-  linkTitle      String?
-  telegramChatId String?
+  instagramAccountId String?
+  instagramUsername  String?
+  productLink        String?
+  productTitle       String?
 
-  createdAt DateTime @default(now()) // <- ADICIONA ESSA LINHA
+  createdAt DateTime @default(now())
 
   @@index([userId])
   @@index([createdAt])
+  @@map("post_logs")
+}
+
+model Link {
+  id        String   @id @default(cuid())
+  url       String
+  title     String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Settings {
+  id String @id @default(cuid())
+  userId String @unique
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  plan String @default("FREE")
+  notifications Boolean @default(true)
+  theme String @default("light")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
 }

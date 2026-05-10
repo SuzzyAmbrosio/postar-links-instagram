@@ -2,28 +2,24 @@
 
 import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
-import { useParams, useSearchParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { toast, Toaster } from "sonner"
 import {
-  Globe, Send, Layout, Bot, Monitor, Instagram, Calendar, MessageSquare, Save, Wand2, MessageCircle,
-  ShoppingBag, Package, Heart, Shirt, Tag, FileText, Users, Video, Check, Search, Link as LinkIcon,
-  RefreshCw, AlertTriangle, FolderOpen, Link2, CheckCircle2, Unlink, AlertCircle, Mail,
-  Copy, Upload, X, TrendingUp, Image as ImageIcon, ToggleLeft, ToggleRight, ShoppingCart, Puzzle,
-  Sparkles, Info, ChevronDown, Plus, ExternalLink, Trash2, Pencil, CheckCircle2 as CheckCircle, Clock,
-  ArrowLeft, Eye, Hash, Settings, HelpCircle, CheckIcon, Edit
+  Globe, Layout, Instagram, Calendar, MessageSquare, Save, AlertTriangle,
+  ShoppingBag, Package, Heart, Shirt, Users, Video, Link2,
+  RefreshCw, AlertCircle, Upload, X, TrendingUp, Unlink, ImageIcon, ExternalLink, MessageCircle, Wand2, LinkIcon, Info,
+  ArrowLeft, Eye, Edit, Send, Pencil, CheckCircle2, Clock, Trash2, Plus
 } from "lucide-react"
 
-
+// SÓ INSTAGRAM AGORA
 const tabsRow1 = [
-  { id: "geral", label: "Geral", icon: Globe },
-  { id: "editar", label: "Editar Grupo", icon: Edit }, // NOVA ABA
+  { id: "editar", label: "Editar Conta", icon: Edit },
   { id: "layout", label: "Layout Post", icon: Layout },
-  { id: "telegram", label: "Telegram", icon: Send },
-  { id: "whatsapp", label: "WhatsApp - Grupos/Canais", icon: MessageSquare },
   { id: "instagram", label: "Instagram", icon: Instagram },
   { id: "instasched", label: "InstaSched", icon: Calendar },
   { id: "instabot", label: "InstaBotHelp", icon: MessageSquare },
+  { id: "postmanual", label: "Post Manual", icon: Globe },
 ]
 
 const tabsRow2 = [
@@ -37,50 +33,90 @@ const tabsRow2 = [
 
 export default function EditarCanalPage() {
   const params = useParams()
-  const searchParams = useSearchParams()
-  const [activeTab, setActiveTab] = useState("geral")
+  const router = useRouter()
   const { data: session } = useSession()
+
+  const accountId = params.id as string
+  const [activeTab, setActiveTab] = useState("instagram")
   const [userPlan, setUserPlan] = useState("INICIANTE")
-  const [channel, setChannel] = useState<any>(null)
+  const [account, setaccount] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+
+  const [accountsList, setaccountsList] = useState<any[]>([])
+  const [selectedaccountId, setSelectedaccountId] = useState(accountId)
+  const [loadingaccounts, setLoadingaccounts] = useState(true)
 
   useEffect(() => {
     if (session) {
       loadUserPlan()
-      loadChannel()
+      loadaccountsList()
     }
   }, [session])
 
+  useEffect(() => {
+    if (session && accountId) {
+      loadaccount(accountId)
+    }
+  }, [session, accountId])
+
   async function loadUserPlan() {
-    const res = await fetch("/api/user")
-    if (res.ok) {
-      const data = await res.json()
-      setUserPlan(data.plan || "INICIANTE")
+    try {
+      const res = await fetch("/api/user")
+      if (res.ok) {
+        const data = await res.json()
+        setUserPlan(data.plan || "INICIANTE")
+      }
+    } catch (e) {
+      console.error(e)
     }
   }
 
-  async function loadChannel() {
+  async function loadaccount(id: string) {
+    setLoading(true)
     try {
-      const res = await fetch("/api/channels")
-      const data = await res.json()
-      const id = params.id as string
-      const type = searchParams.get("type")
-      const found = [...data.telegram,...data.whatsapp].find((c: any) => c.id === id)
-      if (found) setChannel({...found, type })
-    } catch (e) {
+      const res = await fetch(`/api/instagram/${id}`)
+      if (!res.ok) throw new Error("Conta não encontrada")
+      const found = await res.json()
+      setaccount(found)
+      setSelectedaccountId(found.id)
+    } catch (e: any) {
       console.error(e)
+      toast.error("Erro ao carregar conta")
+      router.push("/dashboard/canais-grupos")
     } finally {
       setLoading(false)
     }
   }
 
-   return (
+  async function loadaccountsList() {
+    setLoadingaccounts(true)
+    try {
+      const res = await fetch(`/api/instagram`)
+      const data = await res.json()
+      setaccountsList(data || [])
+    } catch (e) {
+      toast.error('Erro ao carregar lista de contas')
+    } finally {
+      setLoadingaccounts(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-12 text-center">
+        <RefreshCw className="mx-auto mb-2 animate-spin" size={32} />
+        <p className="text-gray-600">Carregando...</p>
+      </div>
+    )
+  }
+
+  return (
     <div className="min-h-screen bg-gray-50">
       <Toaster richColors />
 
       {userPlan === "INICIANTE" && (
         <div className="mx-4 mt-4 rounded-lg bg-[#FFF8E1] px-5 py-3 text-center">
-          <button className="inline-flex items-center rounded-md bg-[#FFC107] px-4 py-2 text- font-bold text-slate-900 hover:bg-amber-400">
+          <button className="inline-flex items-center rounded-md bg-[#FFC107] px-4 py-2 text-sm font-bold text-slate-900 hover:bg-amber-400">
             Upgrade Agora 🚀
           </button>
         </div>
@@ -91,13 +127,16 @@ export default function EditarCanalPage() {
           <ArrowLeft size={20} />
         </Link>
         <img
-          src={channel?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(channel?.name || 'C')}&background=random`}
-          alt={channel?.name || 'Canal'}
+          src={account?.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(account?.username || 'C')}&background=random`}
+          alt={account?.username || 'Conta'}
           className="h-10 w-10 rounded-full object-cover"
         />
         <div className="flex items-center gap-2">
-          <span className="text-base font-semibold text-gray-900">Editar: {channel?.name || 'Carregando...'}</span>
-          <button className="flex items-center gap-1 rounded bg-[#1976D2] px-2.5 py-1 text- font-semibold text-white hover:bg-blue-700">
+          <span className="text-base font-semibold text-gray-900">Editar: @{account?.username || 'Carregando...'}</span>
+          <button
+            onClick={() => loadaccount(accountId)}
+            className="flex items-center gap-1 rounded bg-[#1976D2] px-2.5 py-1 text-xs font-semibold text-white hover:bg-blue-700"
+          >
             <RefreshCw size={12} />
             Atualizar
           </button>
@@ -112,9 +151,9 @@ export default function EditarCanalPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 rounded-md px-4 py-2 text- font-medium transition ${
+                className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition ${
                   activeTab === tab.id
-                   ? "bg-[#1976D2] text-white"
+                ? "bg-[#1976D2] text-white"
                     : "text-gray-700 hover:bg-gray-100"
                 }`}
               >
@@ -132,9 +171,9 @@ export default function EditarCanalPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text- font-medium transition ${
+                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition ${
                   activeTab === tab.id
-                   ? "bg-[#1976D2] text-white"
+                ? "bg-[#1976D2] text-white"
                     : "text-gray-700 hover:bg-gray-100"
                 }`}
               >
@@ -146,13 +185,20 @@ export default function EditarCanalPage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 mt-4 space-y-4 pb-8">
-        {activeTab === "geral" && <GeralTab channel={channel} loadChannel={loadChannel} />}
-        {activeTab === "editar" && <EditarGrupoTab channel={channel} loadChannel={loadChannel} />}
-        {activeTab === "whatsapp" && <WhatsAppTab />}
-        {activeTab === "instagram" && <InstagramTab channel={channel} />}
+      <div className="w-full px-4 mt-4 pb-8">
+        {activeTab === "postmanual" && (
+          <PostManualTab
+            account={account}
+            loadaccount={() => loadaccount(accountId)}
+            accountsList={accountsList}
+            selectedaccountId={selectedaccountId}
+            setSelectedaccountId={(id: string) => router.push(`/dashboard/canais-grupos/${id}`)}
+            loadingaccounts={loadingaccounts}
+          />
+        )}
+        {activeTab === "editar" && <EditarGrupoTab account={account} loadaccount={() => loadaccount(accountId)} />}
+        {activeTab === "instagram" && <InstagramTab account={account} />}
         {activeTab === "shopee" && <ShopeeTab />}
-        {activeTab === "telegram" && <TelegramTab />}
         {activeTab === "layout" && <LayoutTab />}
         {activeTab === "instasched" && <InstaSchedTab />}
         {activeTab === "instabot" && <InstaBotHelpTab />}
@@ -166,48 +212,141 @@ export default function EditarCanalPage() {
   )
 }
 
-function GeralTab({ channel, loadChannel }: any) {
-  const params = useParams()
-  const searchParams = useSearchParams()
-  const id = params.id as string
-  const type = searchParams.get("type") as "telegram" | "whatsapp"
-
-  // States da aba Configuração
+function PostManualTab({
+  account,
+  loadaccount,
+  accountsList,
+  selectedaccountId,
+  setSelectedaccountId,
+  loadingaccounts
+}: any) {
   const [interval, setInterval] = useState("")
   const [isActive, setIsActive] = useState(false)
-  const [postEmLoop, setPostEmLoop] = useState(false)
+  const [postInLoop, setPostInLoop] = useState(false)
+  const [random, setRandom] = useState(false)
   const [horaInicio, setHoraInicio] = useState("")
   const [horaFim, setHoraFim] = useState("")
+  const [idioma, setIdioma] = useState("")
+  const [moeda, setMoeda] = useState("")
+  const [pais, setPais] = useState("")
   const [saving, setSaving] = useState(false)
-  
-  // States dos templates
+  const [loadingConfig, setLoadingConfig] = useState(true)
+
+  const [productLink, setProductLink] = useState("")
+  const [keepLinkInPost, setKeepLinkInPost] = useState(true)
+  const [header, setHeader] = useState("")
+  const [footer, setFooter] = useState("")
+  const [shopeeVideoLink, setShopeeVideoLink] = useState("")
+  const [useShopeeVideo, setUseShopeeVideo] = useState(false)
+  const [precoOriginal, setPrecoOriginal] = useState("")
+  const [precoAtual, setPrecoAtual] = useState("")
+  const [sufixoPreco, setSufixoPreco] = useState("")
+  const [precoParcelado, setPrecoParcelado] = useState("")
+  const [descricao, setDescricao] = useState("")
+  const [agendamento, setAgendamento] = useState("")
+
   const [corTitulo, setCorTitulo] = useState("#000000")
   const [corPreco, setCorPreco] = useState("#FFFFFF")
-  const [ativarFeedTelegram, setAtivarFeedTelegram] = useState(false)
 
-  // Sincroniza quando channel carregar
+  const [tipoCupom, setTipoCupom] = useState("")
+  const [valorDesconto, setValorDesconto] = useState("")
+  const [valorMinimo, setValorMinimo] = useState("")
+  const [valorMaximo, setValorMaximo] = useState("")
+  const [codigoCupom, setCodigoCupom] = useState("")
+
   useEffect(() => {
-    if (channel) {
-      setInterval(channel.interval?.toString() || "")
-      setIsActive(channel.isActive || false)
+    if (selectedaccountId) loadConfig()
+  }, [selectedaccountId])
+
+  async function loadConfig() {
+    setLoadingConfig(true)
+    try {
+      const res = await fetch(`/api/instagram/${selectedaccountId}/config`)
+      const data = await res.json()
+
+      if (data.id) {
+        setInterval(data.interval?.toString() || "")
+        setIsActive(data.isActive?? false)
+        setPostInLoop(data.postInLoop?? false)
+        setRandom(data.random?? false)
+        setHoraInicio(data.horaInicio || "")
+        setHoraFim(data.horaFim || "")
+        setIdioma(data.idioma || "")
+        setMoeda(data.moeda || "")
+        setPais(data.pais || "")
+        setProductLink(data.productLink || "")
+        setKeepLinkInPost(data.keepLinkInPost?? true)
+        setHeader(data.header || "")
+        setFooter(data.footer || "")
+        setShopeeVideoLink(data.shopeeVideoLink || "")
+        setUseShopeeVideo(data.useShopeeVideo?? false)
+        setPrecoOriginal(data.precoOriginal || "")
+        setPrecoAtual(data.precoAtual || "")
+        setSufixoPreco(data.sufixoPreco || "")
+        setPrecoParcelado(data.precoParcelado || "")
+        setDescricao(data.descricao || "")
+        setAgendamento(data.agendamento || "")
+        setCorTitulo(data.corTitulo || "#000000")
+        setCorPreco(data.corPreco || "#FFFFFF")
+        setTipoCupom(data.tipoCupom || "")
+        setValorDesconto(data.valorDesconto || "")
+        setValorMinimo(data.valorMinimo || "")
+        setValorMaximo(data.valorMaximo || "")
+        setCodigoCupom(data.codigoCupom || "")
+      }
+    } catch (e) {
+      console.error(e)
+      toast.error('Erro ao carregar configuração')
+    } finally {
+      setLoadingConfig(false)
     }
-  }, [channel])
+  }
 
   async function salvarConfig() {
+    if (!selectedaccountId) {
+      toast.error("Selecione uma conta primeiro")
+      return
+    }
+
     setSaving(true)
     try {
-      const res = await fetch(`/api/channels/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch(`/api/instagram/${selectedaccountId}/config`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type,
           interval: interval? parseInt(interval) : null,
-          isActive
+          isActive,
+          postInLoop,
+          random,
+          horaInicio,
+          horaFim,
+          idioma,
+          moeda,
+          pais,
+          productLink,
+          keepLinkInPost,
+          header,
+          footer,
+          shopeeVideoLink,
+          useShopeeVideo,
+          precoOriginal,
+          precoAtual,
+          sufixoPreco,
+          precoParcelado,
+          descricao,
+          agendamento,
+          corTitulo,
+          corPreco,
+          tipoCupom,
+          valorDesconto,
+          valorMinimo,
+          valorMaximo,
+          codigoCupom
         })
       })
       if (!res.ok) throw new Error("Erro ao salvar")
       toast.success("Configuração salva!")
-      await loadChannel()
+      await loadaccount()
     } catch (e: any) {
       toast.error(e.message)
     } finally {
@@ -215,10 +354,44 @@ function GeralTab({ channel, loadChannel }: any) {
     }
   }
 
-   return (
+  if (loadingConfig) return <div className="text-center py-8">Carregando configuração...</div>
+
+  return (
     <>
-      <div className="grid w-full gap-4 lg:grid-cols-2 xl:grid-cols-2">
-        <div className="w-full rounded-lg border border-gray-200 bg-white p-4">
+      <div className="grid w-full gap-4 lg:grid-cols-2">
+        <div className="rounded-lg border border-gray-200 bg-white p-4">
+          {/* SELECT DE CONTA INSTAGRAM */}
+          <div className="mb-6">
+            <label className="mb-2 block text-xs font-semibold uppercase text-gray-600">
+              CONTA INSTAGRAM:
+            </label>
+            <select
+              value={selectedaccountId}
+              onChange={(e) => setSelectedaccountId(e.target.value)}
+              disabled={loadingaccounts}
+              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none disabled:bg-gray-100"
+            >
+              <option value="">
+                {loadingaccounts? 'Carregando...' : 'Selecione uma conta do Instagram'}
+              </option>
+              {accountsList?.map((ch: any) => (
+                <option key={ch.id} value={ch.id}>
+                  @{ch.username}
+                </option>
+                ))}
+            </select>
+
+            {!loadingaccounts && accountsList.length === 0 && (
+              <p className="mt-2 flex items-center gap-1 text-xs text-red-600">
+                <AlertCircle size={14} />
+                Nenhum conta do Instagram conectada.
+                <Link href="/dashboard/canais-grupos" className="ml-1 font-semibold underline">
+                  Conectar agora
+                </Link>
+              </p>
+            )}
+          </div>
+
           <div className="mb-9">
             <label className="mb-3 block text-xs font-semibold uppercase text-gray-600">
               LINK DO PRODUTO:
@@ -234,12 +407,23 @@ function GeralTab({ channel, loadChannel }: any) {
             <label className="mb-3 block text-xs font-semibold uppercase text-gray-600">
               LINK
             </label>
-            <input type="text" className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
+            <input
+              type="text"
+              value={productLink}
+              onChange={(e) => setProductLink(e.target.value)}
+              placeholder="https://shopee.com.br/..."
+              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            />
           </div>
 
           <div className="mb-10">
             <label className="grid grid-cols-[16px_1fr] gap-2 text-xs text-gray-600 cursor-pointer">
-              <input type="checkbox" className="mt- h-4 w-4 rounded border-gray-300 text-[#1976D2] focus:ring-[#1976D2]" />
+              <input
+                type="checkbox"
+                checked={keepLinkInPost}
+                onChange={(e) => setKeepLinkInPost(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#1976D2] focus:ring-[#1976D2]"
+              />
               <span className="leading-snug">Manter esse link no post.</span>
             </label>
           </div>
@@ -248,28 +432,48 @@ function GeralTab({ channel, loadChannel }: any) {
             <label className="mb-1 block text-xs font-semibold uppercase text-gray-600">
               CABEÇALHO DINÂMICO:
             </label>
-            <select className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
-              <option>Selecione um cabeçalho ou digite um novo</option>
-            </select>
+            <input
+              type="text"
+              value={header}
+              onChange={(e) => setHeader(e.target.value)}
+              placeholder="🔥 OFERTA IMPERDÍVEL!"
+              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            />
           </div>
 
           <div className="mb-10">
             <label className="mb-1 block text-xs font-semibold uppercase text-gray-600">
-              OU DIGITE UM NOVO CABEÇALHO:
+              RODAPÉ:
             </label>
-            <input type="text" className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
+            <input
+              type="text"
+              value={footer}
+              onChange={(e) => setFooter(e.target.value)}
+              placeholder="Link nos comentários 👇"
+              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            />
           </div>
 
           <div className="mb-3">
             <label className="mb-1 block text-xs font-semibold uppercase text-gray-600">
               LINK SHOPEE VÍDEO
             </label>
-            <input type="text" className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
+            <input
+              type="text"
+              value={shopeeVideoLink}
+              onChange={(e) => setShopeeVideoLink(e.target.value)}
+              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            />
           </div>
 
           <div className="mb-3">
             <label className="grid grid-cols-[16px_1fr] gap-2 text-xs text-gray-600 cursor-pointer">
-              <input type="checkbox" className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#1976D2] focus:ring-[#1976D2]" />
+              <input
+                type="checkbox"
+                checked={useShopeeVideo}
+                onChange={(e) => setUseShopeeVideo(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#1976D2] focus:ring-[#1976D2]"
+              />
               <span className="leading-snug">Link do vídeo do produto na Shopee, se preenchido, o sistema trocará o link original do produto pelo link do vídeo.</span>
             </label>
           </div>
@@ -281,24 +485,68 @@ function GeralTab({ channel, loadChannel }: any) {
             </p>
           </div>
 
-          {['PREÇO ORIGINAL:', 'PREÇO ATUAL:', 'SUFIXO DO PREÇO:', 'PREÇO PARCELADO:'].map((label, i) => (
-            <div key={i} className="mb-10">
-              <label className="mb-1 block text-xs font-semibold uppercase text-gray-600">
-                {label}
-              </label>
-              <input 
-                type="text" 
-                defaultValue={i === 0 || i === 1? '' : i === 2? '' : ''} 
-                className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" 
-              />
-            </div>
-          ))}
+          <div className="mb-10">
+            <label className="mb-1 block text-xs font-semibold uppercase text-gray-600">
+              PREÇO ORIGINAL:
+            </label>
+            <input
+              type="text"
+              value={precoOriginal}
+              onChange={(e) => setPrecoOriginal(e.target.value)}
+              placeholder="R$ 299,90"
+              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            />
+          </div>
+
+          <div className="mb-10">
+            <label className="mb-1 block text-xs font-semibold uppercase text-gray-600">
+              PREÇO ATUAL:
+            </label>
+            <input
+              type="text"
+              value={precoAtual}
+              onChange={(e) => setPrecoAtual(e.target.value)}
+              placeholder="R$ 199,90"
+              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            />
+          </div>
+
+          <div className="mb-10">
+            <label className="mb-1 block text-xs font-semibold uppercase text-gray-600">
+              SUFIXO DO PREÇO:
+            </label>
+            <input
+              type="text"
+              value={sufixoPreco}
+              onChange={(e) => setSufixoPreco(e.target.value)}
+              placeholder="à vista no Pix"
+              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            />
+          </div>
+
+          <div className="mb-10">
+            <label className="mb-1 block text-xs font-semibold uppercase text-gray-600">
+              PREÇO PARCELADO:
+            </label>
+            <input
+              type="text"
+              value={precoParcelado}
+              onChange={(e) => setPrecoParcelado(e.target.value)}
+              placeholder="12x de R$ 19,90"
+              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            />
+          </div>
 
           <div className="mb-8">
             <label className="mb-1 block text-xs font-semibold uppercase text-gray-600">
               DESCRIÇÃO:
             </label>
-            <textarea className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" rows={3} />
+            <textarea
+              value={descricao}
+              onChange={(e) => setDescricao(e.target.value)}
+              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              rows={3}
+            />
             <p className="mt-1 text-xs text-gray-500">Essa descrição se aplica somente a esse produto cadastrado.</p>
           </div>
 
@@ -306,46 +554,50 @@ function GeralTab({ channel, loadChannel }: any) {
             <label className="mb-3 block text-xs font-semibold uppercase text-gray-600">
               AGENDAMENTO
             </label>
-            <p className="text-sm font-bold text-gray-900">NÃO EXPIRA</p>
-            <p className="text-xs text-gray-500">Não deleta o produto automaticamente</p>
-          </div>
-
-          <div>
-            <label className="mb-3 block text-xs font-semibold uppercase text-gray-600">
-              AGENDAMENTO
-            </label>
-            <input 
-              type="datetime-local" 
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" 
+            <input
+              type="datetime-local"
+              value={agendamento}
+              onChange={(e) => setAgendamento(e.target.value)}
+              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
             />
             <p className="mt-3 text-xs text-gray-500">Selecione a Data e Hora</p>
           </div>
         </div>
 
-        <div className="w-full space-y-4">
-          <div className="w-full rounded-lg border border-gray-200 bg-white p-4">
+        {/* COLUNA DIREITA - CONFIGURAÇÕES */}
+        <div className="space-y-4">
+          <div className="rounded-lg border border-gray-200 bg-white p-4">
             <div className="mb-3.5">
               <label className="mb-1.5 block text-xs font-semibold uppercase text-gray-600">
                 CONFIGURAÇÃO:
               </label>
               <div className="space-y-2">
                 <label className="grid grid-cols-[16px_1fr] gap-2 text-sm text-gray-700 cursor-pointer">
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     checked={isActive}
                     onChange={(e) => setIsActive(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#1976D2] focus:ring-[#1976D2]" 
+                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#1976D2] focus:ring-[#1976D2]"
                   />
                   <span>Post automático</span>
                 </label>
                 <label className="grid grid-cols-[16px_1fr] gap-2 text-sm text-gray-700 cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={postEmLoop}
-                    onChange={(e) => setPostEmLoop(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#1976D2] focus:ring-[#1976D2]" 
+                  <input
+                    type="checkbox"
+                    checked={postInLoop}
+                    onChange={(e) => setPostInLoop(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#1976D2] focus:ring-[#1976D2]"
                   />
                   <span>Post em Loop</span>
+                </label>
+                <label className="grid grid-cols-[16px_1fr] gap-2 text-sm text-gray-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={random}
+                    onChange={(e) => setRandom(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#1976D2] focus:ring-[#1976D2]"
+                  />
+                  <span>Ordem aleatória</span>
                 </label>
               </div>
               <p className="mt-1 text-xs text-gray-500">Repete os produtos ao final da lista.</p>
@@ -388,16 +640,72 @@ function GeralTab({ channel, loadChannel }: any) {
               />
             </div>
 
-            <button 
+            <div className="mb-3.5">
+              <label className="mb-1 block text-xs font-semibold uppercase text-gray-600">
+                IDIOMA
+              </label>
+              <select
+                value={idioma}
+                onChange={(e) => setIdioma(e.target.value)}
+                className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              >
+                <option value="">Selecione o idioma</option>
+                <option value="pt-BR">Português (Brasil)</option>
+                <option value="en">English</option>
+                <option value="es">Español</option>
+                <option value="zh">中文</option>
+              </select>
+              <p className="mt-1 text-xs text-gray-500">Título de produtos do AliExpress</p>
+            </div>
+
+            <div className="mb-3.5">
+              <label className="mb-1 block text-xs font-semibold uppercase text-gray-600">
+                MOEDA
+              </label>
+              <select
+                value={moeda}
+                onChange={(e) => setMoeda(e.target.value)}
+                className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              >
+                <option value="">Selecione a moeda</option>
+                <option value="BRL">Real (BRL)</option>
+                <option value="USD">Dólar (USD)</option>
+                <option value="EUR">Euro (EUR)</option>
+                <option value="CNY">Yuan (CNY)</option>
+              </select>
+              <p className="mt-1 text-xs text-gray-500">Valor de produtos do AliExpress</p>
+            </div>
+
+            <div className="mb-3.5">
+              <label className="mb-1 block text-xs font-semibold uppercase text-gray-600">
+                PAÍS
+              </label>
+              <select
+                value={pais}
+                onChange={(e) => setPais(e.target.value)}
+                className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              >
+                <option value="">Selecione o país</option>
+                <option value="BR">Brasil</option>
+                <option value="US">Estados Unidos</option>
+                <option value="CN">China</option>
+                <option value="ES">Espanha</option>
+                <option value="MX">México</option>
+                <option value="AR">Argentina</option>
+              </select>
+              <p className="mt-1 text-xs text-gray-500">país para envio (send to)</p>
+            </div>
+
+            <button
               onClick={salvarConfig}
-              disabled={saving}
+              disabled={saving ||!selectedaccountId}
               className="mt-4 w-full rounded bg-[#1976D2] py-2 text-sm font-bold text-white hover:bg-blue-700 disabled:bg-gray-300"
             >
               {saving? "Salvando..." : "Salvar"}
             </button>
           </div>
 
-          {/* CARD CUPONS - mantém igual */}
+          {/* CARD CUPONS */}
           <div className="w-full rounded-lg border border-gray-200 bg-white">
             <div className="rounded-t-lg bg-[#29B6F6] px-4 py-2.5">
               <h4 className="text-sm font-semibold text-white">Cupons</h4>
@@ -407,10 +715,14 @@ function GeralTab({ channel, loadChannel }: any) {
                 <label className="mb-1 block text-xs font-semibold uppercase text-gray-600">
                   TIPO DE CUPOM
                 </label>
-                <select className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
-                  <option>Selecione o tipo de cupom</option>
-                  <option>Porcentagem</option>
-                  <option>Valor Fixo</option>
+                <select
+                  value={tipoCupom}
+                  onChange={(e) => setTipoCupom(e.target.value)}
+                  className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                >
+                  <option value="">Selecione o tipo de cupom</option>
+                  <option value="porcentagem">Porcentagem</option>
+                  <option value="valor_fixo">Valor Fixo</option>
                 </select>
               </div>
 
@@ -420,6 +732,8 @@ function GeralTab({ channel, loadChannel }: any) {
                 </label>
                 <input
                   type="text"
+                  value={valorDesconto}
+                  onChange={(e) => setValorDesconto(e.target.value)}
                   placeholder="Ex: 10 ou 50"
                   className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
                 />
@@ -432,6 +746,8 @@ function GeralTab({ channel, loadChannel }: any) {
                 </label>
                 <input
                   type="text"
+                  value={valorMinimo}
+                  onChange={(e) => setValorMinimo(e.target.value)}
                   placeholder="Ex: 50 ou 100"
                   className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
                 />
@@ -444,6 +760,8 @@ function GeralTab({ channel, loadChannel }: any) {
                 </label>
                 <input
                   type="text"
+                  value={valorMaximo}
+                  onChange={(e) => setValorMaximo(e.target.value)}
                   placeholder="Ex: 100 ou 200"
                   className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
                 />
@@ -456,16 +774,26 @@ function GeralTab({ channel, loadChannel }: any) {
                 </label>
                 <input
                   type="text"
+                  value={codigoCupom}
+                  onChange={(e) => setCodigoCupom(e.target.value)}
                   placeholder="Ex: CUPOM15"
                   className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
                 />
               </div>
 
               <div className="flex gap-2 pt-1">
-                <button className="rounded bg-[#1976D2] px-5 py-2 text-sm font-bold text-white hover:bg-blue-700">
+                <button
+                  onClick={salvarConfig}
+                  disabled={saving}
+                  className="rounded bg-[#1976D2] px-5 py-2 text-sm font-bold text-white hover:bg-blue-700 disabled:bg-gray-300"
+                >
                   Salvar
                 </button>
-                <button className="rounded bg-[#388E3C] px-5 py-2 text-sm font-bold text-white hover:bg-green-700">
+                <button
+                  onClick={salvarConfig}
+                  disabled={saving}
+                  className="rounded bg-[#388E3C] px-5 py-2 text-sm font-bold text-white hover:bg-green-700 disabled:bg-gray-300"
+                >
                   Salvar e Postar
                 </button>
               </div>
@@ -474,7 +802,7 @@ function GeralTab({ channel, loadChannel }: any) {
         </div>
       </div>
 
-      {/* TEMPLATES - mantém igual */}
+      {/* TEMPLATES */}
       <div className="grid w-full items-start gap-4 lg:grid-cols-2 mt-4">
         <div className="w-full rounded-lg border border-gray-200 bg-white">
           <div className="border-b border-gray-200 px-4 py-3">
@@ -490,7 +818,7 @@ function GeralTab({ channel, loadChannel }: any) {
                 ESCOLHA UM ARQUIVO
               </label>
               <div className="flex gap-2">
-                <button className="rounded border-gray-300 px-3 py-1.5 text-xs hover:bg-gray-50">
+                <button className="rounded border border-gray-300 px-3 py-1.5 text-xs hover:bg-gray-70">
                   Escolher arquivo
                 </button>
                 <span className="py-1.5 text-xs text-gray-500">Nenhum arquivo escolhido</span>
@@ -533,7 +861,10 @@ function GeralTab({ channel, loadChannel }: any) {
               </label>
             </div>
 
-            <button className="mb-3 rounded bg-[#1976D2] px-6 py-2 text-sm font-bold text-white hover:bg-blue-700">
+            <button
+              onClick={salvarConfig}
+              className="mb-3 rounded bg-[#1976D2] px-6 py-2 text-sm font-bold text-white hover:bg-blue-700"
+            >
               Salvar
             </button>
 
@@ -553,30 +884,21 @@ function GeralTab({ channel, loadChannel }: any) {
             </div>
 
             <div className="mb-8">
-              <label className="grid grid-cols-[16px_1fr] gap-2 text-sm text-gray-700 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={ativarFeedTelegram}
-                  onChange={(e) => setAtivarFeedTelegram(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#1976D2] focus:ring-[#1976D2]"
-                />
-                <span>Ativar Template no Feed do Telegram</span>
-              </label>
-            </div>
-
-            <div className="mb-8">
               <label className="mb-8 block text-xs font-semibold uppercase text-gray-600">
                 ESCOLHA UM ARQUIVO
               </label>
               <div className="flex gap-2">
-                <button className="rounded border border-gray-300 px-3 py-1.5 text-xs hover:bg-gray-50">
+                <button className="rounded border border-gray-300 px-3 py-1.5 text-xs hover:bg-gray-70">
                   Escolher arquivo
                 </button>
                 <span className="py-1.5 text-xs text-gray-500">Nenhum arquivo escolhido</span>
               </div>
             </div>
 
-            <button className="mb-8 rounded bg-[#1976D2] px-6 py-2 text-sm font-bold text-white hover:bg-blue-700">
+            <button
+              onClick={salvarConfig}
+              className="mb-8 rounded bg-[#1976D2] px-6 py-2 text-sm font-bold text-white hover:bg-blue-700"
+            >
               Salvar
             </button>
 
@@ -594,8 +916,7 @@ function GeralTab({ channel, loadChannel }: any) {
   )
 }
 
-// NOVA ABA: EDITAR GRUPO - ABRE MODAL/POPUP
-function EditarGrupoTab({ channel, loadChannel }: any) {
+function EditarGrupoTab({ account, loadaccount }: any) {
   const [modalOpen, setModalOpen] = useState(false)
   const [name, setName] = useState("")
   const [avatar, setAvatar] = useState("")
@@ -603,20 +924,14 @@ function EditarGrupoTab({ channel, loadChannel }: any) {
   const [isActive, setIsActive] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
-  const params = useParams()
-  const searchParams = useSearchParams()
-  const id = params.id as string
-  const type = searchParams.get("type") as "telegram" | "whatsapp"
 
-  // SINCRONIZA SEMPRE QUE ABRIR O MODAL
   useEffect(() => {
-    if (channel) {
-      setName(channel.name || "")
-      setAvatar(channel.avatar || "")
-      setInterval(channel.interval?.toString() || "")
-      setIsActive(channel.isActive?? false)
+    if (account) {
+      setName(account.username || "")
+      setAvatar(account.profilePicture || "")
+      setIsActive(account.isActive?? false)
     }
-  }, [channel])
+  }, [account])
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -640,22 +955,19 @@ function EditarGrupoTab({ channel, loadChannel }: any) {
   async function salvar() {
     setSaving(true)
     try {
-      const res = await fetch(`/api/channels/${id}`, {
+      const res = await fetch(`/api/instagram/${account.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          type,
-          name,
-          avatar,
-          interval: interval? parseInt(interval) : null,
+          username: name,
+          profilePicture: avatar,
           isActive
         })
       })
       if (!res.ok) throw new Error("Erro ao salvar")
-      const updated = await res.json()
       toast.success("Salvo com sucesso!")
       setModalOpen(false)
-      await loadChannel()
+      await loadaccount()
     } catch (e: any) {
       toast.error(e.message)
     } finally {
@@ -668,21 +980,21 @@ function EditarGrupoTab({ channel, loadChannel }: any) {
       <div className="w-full rounded-lg border border-gray-200 bg-white p-6">
         <div className="mb-6 flex items-center gap-4">
           <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-gray-100">
-            {channel?.avatar? (
-              <img src={channel.avatar} alt={channel.name} className="h-full w-full object-cover" />
+            {account?.profilePicture? (
+              <img src={account.profilePicture} alt={account.username} className="h-full w-full object-cover" />
             ) : (
-              type === "telegram"? <Send size={32} className="text-blue-600" /> : <MessageCircle size={32} className="text-green-600" />
+              <Instagram size={32} className="text-pink-600" />
             )}
           </div>
           <div className="flex-1">
-            <h3 className="text-lg font-semibold text-gray-900">{channel?.name || "Carregando..."}</h3>
+            <h3 className="text-lg font-semibold text-gray-900">@{account?.username || "Carregando..."}</h3>
             <p className="text-sm text-gray-500">
-              Status: <span className={channel?.isActive? "text-green-600 font-semibold" : "text-red-600 font-semibold"}>
-                {channel?.isActive? "Ativo" : "Inativo"}
+              Status: <span className={account?.isActive? "text-green-600 font-semibold" : "text-red-600 font-semibold"}>
+                {account?.isActive? "Ativo" : "Inativo"}
               </span>
             </p>
             <p className="text-sm text-gray-500">
-              Intervalo: {channel?.interval? `${channel.interval} min` : "Manual"}
+              {account?.followersCount?.toLocaleString('pt-BR')} seguidores
             </p>
           </div>
         </div>
@@ -692,7 +1004,7 @@ function EditarGrupoTab({ channel, loadChannel }: any) {
           className="flex w-full items-center justify-center gap-2 rounded bg-[#1976D2] py-3 text-sm font-bold text-white hover:bg-blue-700"
         >
           <Edit size={18} />
-          Editar Grupo/Canal
+          Editar Conta
         </button>
       </div>
 
@@ -700,7 +1012,7 @@ function EditarGrupoTab({ channel, loadChannel }: any) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-lg bg-white shadow-xl">
             <div className="flex items-center justify-between border-b border-gray-200 px-5 py-3">
-              <h3 className="text-base font-semibold text-gray-900">Editar Grupo/Canal</h3>
+              <h3 className="text-base font-semibold text-gray-900">Editar Conta Instagram</h3>
               <button onClick={() => setModalOpen(false)} className="text-gray-400 hover:text-gray-600">
                 <X size={20} />
               </button>
@@ -709,14 +1021,14 @@ function EditarGrupoTab({ channel, loadChannel }: any) {
             <div className="p-5 space-y-4">
               <div>
                 <label className="mb-2 block text-xs font-medium uppercase text-gray-700">
-                  FOTO DO GRUPO/CANAL
+                  FOTO DO PERFIL
                 </label>
                 <div className="flex items-center gap-4">
                   <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-gray-100">
                     {avatar? (
                       <img src={avatar} alt="Avatar" className="h-full w-full object-cover" />
                     ) : (
-                      type === "telegram"? <Send size={28} className="text-blue-600" /> : <MessageCircle size={28} className="text-green-600" />
+                      <Instagram size={28} className="text-pink-600" />
                     )}
                   </div>
                   <label className="flex cursor-pointer items-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
@@ -729,7 +1041,7 @@ function EditarGrupoTab({ channel, loadChannel }: any) {
 
               <div>
                 <label className="mb-1 block text-xs font-medium uppercase text-gray-700">
-                  NOME DO GRUPO/CANAL
+                  USERNAME
                 </label>
                 <input
                   type="text"
@@ -739,23 +1051,6 @@ function EditarGrupoTab({ channel, loadChannel }: any) {
                 />
               </div>
 
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase text-gray-700">
-                  INTERVALO DE POSTAGEM (MINUTOS)
-                </label>
-                <input
-                  type="number"
-                  value={interval}
-                  onChange={(e) => setInterval(e.target.value)}
-                  placeholder="Deixe vazio para manual"
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  Ex: 120 = a cada 2 horas
-                </p>
-              </div>
-
-              {/* CHECKBOX COLADO NA ESQUERDA */}
               <label className="grid grid-cols-[16px_1fr] gap-2 text-sm text-gray-700 cursor-pointer">
                 <input
                   type="checkbox"
@@ -764,7 +1059,7 @@ function EditarGrupoTab({ channel, loadChannel }: any) {
                   className="h-4 w-4 rounded border-gray-300 text-[#1976D2] focus:ring-[#1976D2]"
                 />
                 <span className="text-sm font-medium text-gray-700">
-                  Postagem automática
+                  Postagem automática ativa
                 </span>
               </label>
 
@@ -791,7 +1086,7 @@ function EditarGrupoTab({ channel, loadChannel }: any) {
   )
 }
 
-function InstagramTab({ channel }: any) {
+function InstagramTab({ account }: any) {
   const [postAuto, setPostAuto] = useState(false)
   const [desativarComentario, setDesativarComentario] = useState(false)
   const [agendamentoAtivo, setAgendamentoAtivo] = useState(false)
@@ -814,8 +1109,8 @@ function InstagramTab({ channel }: any) {
 
   // Dados do Instagram - troque por API real depois
   const instagramData = {
-    username: channel?.name?.toLowerCase().replace(/\s+/g, '.') || "usuario",
-    nome: channel?.name || "Canal",
+    username: account?.name?.toLowerCase().replace(/\s+/g, '.') || "usuario",
+    nome: account?.name || "Canal",
     seguidores: 0,
     seguindo: 0,
     posts: 0,
@@ -848,7 +1143,7 @@ function InstagramTab({ channel }: any) {
               <div className="mb-4 rounded-lg bg-[#FFF3F8] p-3">
                 <div className="flex items-center gap-3">
                   <img 
-                    src={channel?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(instagramData.nome)}`}
+                    src={account?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(instagramData.nome)}`}
                     alt={instagramData.nome} 
                     className="h-12 w-12 rounded-full object-cover" 
                   />
@@ -897,7 +1192,7 @@ function InstagramTab({ channel }: any) {
                   ESCOLHA UM ARQUIVO
                 </label>
                 <div className="flex gap-2">
-                  <button className="rounded border border-gray-300 px-3 py-1.5 text-xs hover:bg-gray-50">
+                  <button className="rounded border border-gray-300 px-3 py-1.5 text-xs hover:bg-gray-70">
                     Escolher arquivo
                   </button>
                   <span className="py-1.5 text-xs text-gray-500">Nenhum arquivo escolhido</span>
@@ -1119,7 +1414,6 @@ function InstagramTab({ channel }: any) {
   )
 }
 
-
 function ShopeeTab() {
   const [arquivo, setArquivo] = useState<File | null>(null)
   const [produtosExibir, setProdutosExibir] = useState('12')
@@ -1254,7 +1548,7 @@ function ShopeeTab() {
                 ARQUIVO DE PRODUTOS.CSV
               </label>
               <div className="flex gap-2">
-                <label className="cursor-pointer rounded border border-gray-300 px-3 py-1.5 text-xs hover:bg-gray-50">
+                <label className="cursor-pointer rounded border border-gray-300 px-3 py-1.5 text-xs hover:bg-gray-70">
                   Escolher arquivo
                   <input 
                     type="file" 
@@ -1358,216 +1652,6 @@ function ShopeeTab() {
       </div>
 
       <div className="mt-6 text-center text-xs text-gray-400">
-        © 2026
-      </div>
-    </>
-  )
-}
-
-function TelegramTab() {
-  const [botToken, setBotToken] = useState("8595185623:AAEXCoz1jrbnoN5MwN3WZxXheaGGDyLKQQ")
-  const [botUsername, setBotUsername] = useState("ViciadosNaShoppeeBot")
-
-  return (
-    <>
-      {/* Banner Azul Telegram */}
-      <div className="w-full mb-4 rounded-lg bg-gradient-to-r from-[#1C92D2] to-[#00C6FB] px-5 py-4">
-        <div className="flex items-center gap-2 text-white">
-          <Bot size={20} />
-          <div>
-            <h3 className="text-sm font-bold">Configuração do Telegram</h3>
-            <p className="text-xs opacity-90">Configure seu bot e vincule seu grupo ou canal para Viciados na Shoppee</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
-        {/* Coluna Esquerda */}
-        <div className="w-full space-y-4">
-          {/* Card Vincular Grupo ou Canal */}
-          <div className="w-full rounded-lg border border-gray-200 bg-white">
-            <div className="border-b border-gray-200 px-4 py-3">
-              <h4 className="flex items-center gap-1.5 text-sm font-semibold text-gray-900">
-                <Link2 size={16} />
-                Vincular Grupo ou Canal
-              </h4>
-            </div>
-            <div className="p-4">
-              <div className="flex items-center justify-between rounded-lg border-2 border-[#22C55E] bg-[#F0FDF4] px-4 py-3">
-                <div className="flex items-center gap-3">
-                  <img 
-                    src="https://via.placeholder.com/40x40/0088cc/ffffff?text=V" 
-                    alt="Viciados na Shoppee" 
-                    className="h-10 w-10 rounded-full"
-                  />
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-gray-900">Viciados na Shoppee</span>
-                      <span className="flex items-center gap-1 rounded bg-[#22C55E] px-2 py-0.5 text-xs font-semibold text-white">
-                        <Check size={12} />
-                        Conectado
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-600">Grupo/canal vinculado com sucesso</p>
-                  </div>
-                </div>
-                <button className="flex items-center gap-1.5 rounded border border-red-300 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50">
-                  <Unlink size={14} />
-                  Desvincular
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Card Configuração do Bot */}
-          <div className="w-full rounded-lg border border-gray-200 bg-white">
-            <div className="border-b border-gray-200 px-4 py-3">
-              <h4 className="flex items-center gap-1.5 text-sm font-semibold text-gray-900">
-                <Bot size={16} />
-                Configuração do Bot
-              </h4>
-            </div>
-            <div className="space-y-3.5 p-4">
-              <div>
-                <label className="mb-1 flex items-center gap-1 text-xs font-semibold uppercase text-gray-600">
-                  <span>Ou</span> BOT API KEY (TOKEN)
-                </label>
-                <input 
-                  type="text" 
-                  value={botToken}
-                  onChange={(e) => setBotToken(e.target.value)}
-                  className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" 
-                />
-                <p className="mt-1 text-xs text-gray-500">Token fornecido pelo @BotFather ao criar seu bot.</p>
-              </div>
-
-              <div>
-                <label className="mb-1 flex items-center gap-1 text-xs font-semibold uppercase text-gray-600">
-                  <Bot size={12} />
-                  BOT USERNAME
-                </label>
-                <div className="flex items-center rounded border border-gray-300 bg-white focus-within:border-blue-500">
-                  <span className="pl-3 text-sm text-gray-500">@</span>
-                  <input 
-                    type="text" 
-                    value={botUsername}
-                    onChange={(e) => setBotUsername(e.target.value)}
-                    className="w-full rounded px-2 py-2 text-sm focus:outline-none" 
-                  />
-                </div>
-                <p className="mt-1 text-xs text-gray-500">
-                  Nome de usuário do bot (sem @). Deve terminar com _bot ou Bot.
-                </p>
-              </div>
-
-              <button className="flex w-full items-center justify-center gap-2 rounded bg-[#00A3E0] py-2.5 text-sm font-bold text-white hover:bg-[#0090C7]">
-                <Save size={16} />
-                Salvar Configurações do Bot
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Coluna Direita - Tutorial */}
-        <div className="rounded-lg border border-gray-200 bg-white">
-          <div className="border-b border-gray-200 px-4 py-3">
-            <h4 className="flex items-center gap-1.5 text-sm font-semibold text-gray-900">
-              <AlertCircle size={16} />
-              Como Criar seu Bot no Telegram
-            </h4>
-          </div>
-          <div className="p-4">
-            <div className="mb-4 text-center">
-              <img
-                src="/logo-botfather.png" 
-                alt="BotFather" 
-                className="mx-auto h-24 w-auto" 
-                />
-              <p className="mt-2 text-xs text-gray-600">
-                Use o <span className="font-semibold text-[#0088CC]">@BotFather</span> para criar e gerenciar bots no Telegram
-              </p>
-            </div>
-
-            <div className="space-y-3.5">
-              <div className="flex gap-3">
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#0088CC] text-xs font-bold text-white">1</div>
-                <div className="text-xs text-gray-700">
-                  Abra o Telegram e pesquise por <span className="font-semibold text-[#0088CC]">@BotFather</span> ou clique no link.
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#0088CC] text-xs font-bold text-white">2</div>
-                <div className="text-xs text-gray-700">
-                  Envie o comando:
-                  <code className="ml-1 rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[#0088CC]">/newbot</code>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#0088CC] text-xs font-bold text-white">3</div>
-                <div className="text-xs text-gray-700">
-                  O BotFather vai pedir um <span className="font-semibold">nome de exibição</span> para o bot. Escolha o nome que preferir.
-                  <p className="mt-0.5 text-gray-500">Ex: Promoções Incríveis</p>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#0088CC] text-xs font-bold text-white">4</div>
-                <div className="text-xs text-gray-700">
-                  Em seguida, escolha um <span className="font-semibold">username</span> único. Ele precisa terminar com <span className="font-semibold">bot</span>.
-                  <p className="mt-0.5 text-gray-500">Ex: minhas_promos_bot</p>
-                  <p className="text-gray-500">Esse é o valor do campo <span className="font-semibold">"Bot Username"</span></p>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#0088CC] text-xs font-bold text-white">5</div>
-                <div className="text-xs text-gray-700">
-                  O BotFather responderá com uma mensagem contendo o <span className="font-semibold">token da API</span>. Ele se parece com:
-                  <code className="mt-1 block rounded bg-gray-100 px-2 py-1 font-mono text-[#0088CC]">123456789:ABCdefGHI...</code>
-                  <p className="mt-1 text-gray-500">Copie e cole no campo <span className="font-semibold">"Bot API Key"</span></p>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#22C55E] text-xs font-bold text-white">6</div>
-                <div className="text-xs font-semibold text-gray-900">
-                  Pronto! Preencha os campos ao lado e clique em "Salvar".
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-5 border-t border-gray-200 pt-4">
-              <h5 className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase text-gray-600">
-                <span>⚙️</span> CONFIGURAÇÕES EXTRAS (OPCIONAL)
-              </h5>
-              <div className="space-y-2 text-xs text-gray-700">
-                <p><span className="font-semibold">Foto do bot:</span> envie <code className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[#0088CC]">/setuserpic</code> ao @BotFather</p>
-                <p><span className="font-semibold">Descrição:</span> envie <code className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[#0088CC]">/setdescription</code></p>
-                <p><span className="font-semibold">Sobre:</span> envie <code className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[#0088CC]">/setabouttext</code></p>
-                <p><span className="font-semibold">Permissões de grupo:</span> envie <code className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[#0088CC]">/setjoingroups</code> e ative</p>
-                <p><span className="font-semibold">Modo inline:</span> envie <code className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[#0088CC]">/setinline</code> para habilitar</p>
-              </div>
-            </div>
-
-            <div className="mt-5 border-t border-gray-200 pt-4">
-              <h5 className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase text-gray-600">
-                <span>💡</span> DICAS
-              </h5>
-              <ul className="space-y-1.5 text-xs text-gray-700">
-                <li className="flex gap-2"><Check size={14} className="mt-0.5 shrink-0 text-[#22C55E]" />O token do bot é <span className="font-semibold">secreto</span>. Nunca compartilhe publicamente.</li>
-                <li className="flex gap-2"><Check size={14} className="mt-0.5 shrink-0 text-[#22C55E]" />Você pode ter um bot próprio para cada grupo/canal diferente.</li>
-                <li className="flex gap-2"><Check size={14} className="mt-0.5 shrink-0 text-[#22C55E]" />Se perder o token, envie <code className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[#0088CC]">/token</code> ao @BotFather para gerar um novo.</li>
-                <li className="flex gap-2"><Check size={14} className="mt-0.5 shrink-0 text-[#22C55E]" />Adicione o bot como <span className="font-semibold">administrador</span> do grupo/canal para que ele possa postar.</li>
-                <li className="flex gap-2"><Check size={14} className="mt-0.5 shrink-0 text-[#22C55E]" />Use <code className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[#0088CC]">/mybots</code> no @BotFather para gerenciar todos os seus bots.</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="col-span-full mt-6 text-center text-xs text-gray-400">
         © 2026
       </div>
     </>
@@ -1781,7 +1865,6 @@ function LayoutTab() {
   )
 }
 
-
 function InstaSchedTab() {
   const [posts, setPosts] = useState<any[]>([]) // <- Começa vazio
   const [pagina, setPagina] = useState(1)
@@ -1941,59 +2024,6 @@ function InstaSchedTab() {
         © 2026
       </div>
     </>
-  )
-}
-
-function WhatsAppTab() {
-  const [freeTrialAtivo, setFreeTrialAtivo] = useState(false)
-
-  return (
-    <div className="w-full space-y-4">
-      {/* Card Sessões WhatsApp */}
-      <div className="w-full rounded-lg border border-gray-200 bg-white">
-        <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
-          <h4 className="flex items-center gap-1.5 text-sm font-semibold text-gray-900">
-            <Link2 size={16} className="text-gray-600" />
-            Sessões WhatsApp
-          </h4>
-          <div className="flex items-center gap-2">
-            <span className="rounded bg-[#00BCD4] px-2 py-0.5 text-xs font-bold text-white">
-              FREE TRIAL
-            </span>
-            <button
-              onClick={() => setFreeTrialAtivo(!freeTrialAtivo)}
-              className="relative inline-flex h-5 w-9 items-center rounded-full bg-[#4CAF50] transition"
-            >
-              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${freeTrialAtivo ? 'translate-x-5' : 'translate-x-0.5'}`} />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Card Sessão WhatsApp */}
-      <div className="w-full rounded-lg border border-gray-200 bg-white">
-        <div className="border-b border-gray-200 px-4 py-3">
-          <h4 className="text-sm font-semibold text-gray-900">
-            Sessão WhatsApp
-          </h4>
-        </div>
-        
-        <div className="p-4">
-          <p className="mb-3 text-sm text-gray-600">
-            Nenhuma sessão WhatsApp vinculada a este grupo/canal.
-          </p>
-          
-          <button className="flex items-center gap-2 rounded bg-[#4CAF50] px-4 py-2 text-sm font-bold text-white hover:bg-[#45A049]">
-            <RefreshCw size={16} />
-            Conectar novo número
-          </button>
-        </div>
-      </div>
-
-      <div className="mt-6 text-center text-xs text-gray-400">
-        © 2026
-      </div>
-    </div>
   )
 }
 
@@ -2310,7 +2340,6 @@ function InstaBotHelpTab() {
   )
 }
 
-
 function AliExpressTab() {
   const [planoIniciantes] = useState(true)
   const [afiliadoConfigurado] = useState(false)
@@ -2346,7 +2375,7 @@ function AliExpressTab() {
         <p className="mb-3 text-xs text-gray-500">ARQUIVO DE PRODUTOS.XLS</p>
 
         <div className="mb-3 flex items-center gap-2">
-          <label className="cursor-pointer rounded border border-gray-300 bg-white px-3 py-1 text-xs hover:bg-gray-50">
+          <label className="cursor-pointer rounded border border-gray-300 bg-white px-3 py-1 text-xs hover:bg-gray-70">
             Escolher arquivo
             <input 
               type="file" 
@@ -2969,7 +2998,6 @@ function MercadoLivreTab() {
     </>
   )
 }
-
 
 function SheinTab() {
   const [planoIniciantes] = useState(true)

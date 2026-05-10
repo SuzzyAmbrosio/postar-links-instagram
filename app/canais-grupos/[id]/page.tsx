@@ -115,7 +115,7 @@ export default function EditGroupPage() {
   const router = useRouter();
   const id = params.id as string;
 
-  const [activeTab, setActiveTab] = useState("Geral");
+  const [activeTab, setActiveTab] = useState("PostManual");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);

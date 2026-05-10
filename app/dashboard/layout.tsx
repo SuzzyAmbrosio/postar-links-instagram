@@ -6,17 +6,12 @@ import { usePathname } from "next/navigation"
 import { useSession } from "next-auth/react"
 import {
   LayoutDashboard,
+  Instagram,
   Settings,
-  Send,
-  MessageCircle,
-  Users,
-  ArrowRightLeft,
   User,
   CreditCard,
-  Share2,
-  Star,
   HelpCircle,
-  Play,
+  Users,
   Menu,
   X,
 } from "lucide-react"
@@ -29,33 +24,17 @@ const menuItems = [
     icon: LayoutDashboard
   },
   {
-    label: "CONFIGURAÇÃO",
+    label: "AUTOMAÇÃO",
     type: "section"
   },
   {
-    label: "Config Afiliados",
-    href: "/dashboard/config-afiliados",
-    icon: Settings
-  },
-  {
-    label: "Config Telegram",
-    href: "/dashboard/config-telegram",
-    icon: Send
-  },
-  {
-    label: "Config WhatsApp",
-    href: "/dashboard/config-whatsapp",
-    icon: MessageCircle
-  },
-  {
-    label: "Canais/Grupos",
+    label: "Grupos",
     href: "/dashboard/canais-grupos",
     icon: Users
   },
   {
-    label: "Migração de Produtos",
-    href: "/dashboard/migracao-produtos",
-    icon: ArrowRightLeft
+    label: "CONTA",
+    type: "section"
   },
   {
     label: "Meus Dados",
@@ -66,26 +45,6 @@ const menuItems = [
     label: "Assinatura",
     href: "/dashboard/assinatura",
     icon: CreditCard
-  },
-  {
-    label: "Afiliados",
-    href: "/dashboard/afiliados",
-    icon: Share2
-  },
-  {
-    label: "Vídeos",
-    href: "/dashboard/videos",
-    icon: Play
-  },
-  {
-    label: "Programa Influenciadores",
-    href: "/dashboard/programa-influenciadores",
-    icon: Star
-  },
-  {
-    label: "FAQ",
-    href: "/dashboard/faq",
-    icon: HelpCircle
   },
   {
     label: "Ajuda",
@@ -105,6 +64,7 @@ export default function DashboardLayout({
 
   const userName = session?.user?.name || "Usuário"
   const userInitial = userName.charAt(0).toUpperCase()
+  const userPlan = session?.user?.plan || "FREE"
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -112,7 +72,7 @@ export default function DashboardLayout({
       <aside className="hidden w-64 flex-shrink-0 border-r border-gray-200 bg-white lg:block">
         <div className="flex h-full flex-col">
           {/* Logo MAIOR + NOME */}
-          <div className="flex h-22 justify-center items- gap-3 border-b border-gray-200 px-5">
+          <div className="flex h-22 justify-center items-center gap-3 border-b border-gray-200 px-5">
             <img 
               src="/logo-posta-links-auto.png" 
               alt="Posta Links Auto" 
@@ -164,7 +124,7 @@ export default function DashboardLayout({
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-gray-900">{userName}</p>
-                <p className="truncate text-xs text-gray-600">Plano INICIANTES</p>
+                <p className="truncate text-xs text-gray-600">Plano {userPlan}</p>
               </div>
             </div>
           </div>
