@@ -388,46 +388,6 @@ function GeralTab({ channel, loadChannel }: any) {
               />
             </div>
 
-            {['IDIOMA', 'MOEDA', 'PAÍS'].map((label, i) => (
-              <div key={i} className="mb-3.5">
-                <label className="mb-1 block text-xs font-semibold uppercase text-gray-600">
-                  {label}
-                </label>
-                <select className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
-                  <option></option>
-                </select>
-                {i === 0 && <p className="mt-1 text-xs text-gray-500">Título de produtos do AliExpress</p>}
-                {i === 1 && <p className="mt-1 text-xs text-gray-500">Valor de produtos do AliExpress</p>}
-                {i === 2 && <p className="mt-1 text-xs text-gray-500">país para envio (send to)</p>}
-              </div>
-            ))}
-
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase text-gray-600">
-                LOJAS ATIVAS
-              </label>
-              <div className="space-y-2">
-                {[
-                  "AliExpress",
-                  "Amazon",
-                  "Magazine Luiza",
-                  "Shopee",
-                  "Shein",
-                  "Natura",
-                  "Awin",
-                  "Mercado Livre",
-                ].map((loja) => (
-                  <label key={loja} className="grid grid-cols-[16px_1fr] gap-2 text-sm text-gray-700 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#1976D2] focus:ring-[#1976D2]"
-                    />
-                    <span>{loja}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
             <button 
               onClick={salvarConfig}
               disabled={saving}
