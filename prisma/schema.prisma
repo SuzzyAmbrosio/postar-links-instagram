@@ -191,6 +191,9 @@ model ChannelConfig {
   // Template
   corTitulo String?
   corPreco  String?
+  templateImageUrl String?
+  templateImageName String?
+  templateSource String? @default("local")
 
   // Cupom
   tipoCupom     String?
@@ -204,6 +207,18 @@ model ChannelConfig {
 
   user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   instagramAccount InstagramAccount @relation(fields: [instagramAccountId], references: [id], onDelete: Cascade)
+
+  postAuto Boolean @default(false)
+  desativarComentario Boolean @default(false)
+  agendamentoAtivo Boolean @default(false)
+
+  storyTemplateUrl String?
+
+  textoRespostaStory String?
+  textoBotaoLink String?
+
+  diasSelecionados String[] @default([])
+  horariosSelecionados Int[] @default([])
 
   @@index([userId])
   @@map("channel_configs")

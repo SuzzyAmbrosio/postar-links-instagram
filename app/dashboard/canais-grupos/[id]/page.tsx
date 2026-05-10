@@ -46,6 +46,10 @@ export default function EditarCanalPage() {
   const [selectedaccountId, setSelectedaccountId] = useState(accountId)
   const [loadingaccounts, setLoadingaccounts] = useState(true)
 
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<any | null>(null);
+  const [uploading, setUploading] = useState(false);
+
   useEffect(() => {
     if (session) {
       loadUserPlan()
@@ -815,14 +819,22 @@ function PostManualTab({
 
             <div className="mb-3">
               <label className="mb-1 block text-xs font-semibold uppercase text-gray-600">
-                ESCOLHA UM ARQUIVO
+                ESCOLHA UMA IMAGEM DA PASTA
               </label>
-              <div className="flex gap-2">
-                <button className="rounded border border-gray-300 px-3 py-1.5 text-xs hover:bg-gray-70">
-                  Escolher arquivo
-                </button>
-                <span className="py-1.5 text-xs text-gray-500">Nenhum arquivo escolhido</span>
-              </div>
+
+              <select
+                value={selectedTemplateUrl}
+                onChange={(e) => setSelectedTemplateUrl(e.target.value)}
+                className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              >
+                <option value="">Selecione uma imagem</option>
+
+                {templateImages.map((img) => (
+                  <option key={img.url} value={img.url}>
+                    {img.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="mb-2">
@@ -1098,13 +1110,111 @@ function InstagramTab({ account }: any) {
     8: false, 9: false, 10: false, 11: false, 12: false, 13: false, 14: false, 15: false,
     16: false, 17: false, 18: false, 19: false, 20: false, 21: false, 22: false, 23: false
   })
+
+  const [templateImages, setTemplateImages] = useState<any[]>([])
+  const [driveImages, setDriveImages] = useState<any[]>([])
+  const [selectedTemplateUrl, setSelectedTemplateUrl] = useState("")
+
+  const [textoRespostaStory, setTextoRespostaStory] = useState(
+    "Olá, que bom que você gostou desse produto!"
+  )
+
+  const [textoBotaoLink, setTextoBotaoLink] = useState(
+    "VER NA LOJA"
+  )
+  
+
+  useEffect(() => {
+    async function loadConfig() {
+      const res = await fetch(
+        `/api/instagram/config?instagramAccountId=${account.id}`
+      );
+
+      const data = await res.json();
+
+      setPostAuto(data.postAuto || false);
+      setDesativarComentario(data.desativarComentario || false);
+      setAgendamentoAtivo(data.agendamentoAtivo || false);
+
+      setSelectedTemplateUrl(data.storyTemplateUrl || "");
+
+      setTextoRespostaStory(
+        data.textoRespostaStory ||
+        "Olá, que bom que você gostou desse produto!"
+      );
+
+      setTextoBotaoLink(
+        data.textoBotaoLink || "VER NA LOJA"
+      );
+
+      if (data.diasSelecionados) {
+        const diasObj: any = {};
+
+        data.diasSelecionados.forEach((d: string) => {
+          diasObj[d] = true;
+        });
+
+        setDiasSemana((prev) => ({
+          ...prev,
+          ...diasObj,
+        }));
+      }
+
+      if (data.horariosSelecionados) {
+        const horasObj: any = {};
+
+        data.horariosSelecionados.forEach((h: number) => {
+          horasObj[h] = true;
+        });
+
+        setHorarios((prev) => ({
+          ...prev,
+          ...horasObj,
+        }));
+      }
+    }
+
+    loadConfig();
+  }, [account.id]);
+
   
   const toggleDia = (dia: string) => {
-    setDiasSemana(prev => ({...prev, [dia]:!prev[dia as keyof typeof prev] }))
+    setDiasSemana(prev => ({...prev, [dia]: !prev[dia as keyof typeof prev] }))
   }
-  
+
   const toggleHora = (hora: number) => {
-    setHorarios(prev => ({...prev, [hora]:!prev[hora] }))
+    setHorarios(prev => ({...prev, [hora]: !prev[hora] }))
+  }
+
+  // 👇 COLE A ETAPA 4 AQUI
+  async function salvarConfiguracoes() {
+    const diasSelecionados = Object.keys(diasSemana)
+      .filter((dia) => diasSemana[dia as keyof typeof diasSemana])
+
+    const horariosSelecionados = Object.keys(horarios)
+      .filter((hora) => horarios[Number(hora)])
+      .map(Number)
+
+    await fetch("/api/instagram/config", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        instagramAccountId: account.id,
+
+        postAuto,
+        desativarComentario,
+        agendamentoAtivo,
+
+        storyTemplateUrl: selectedTemplateUrl,
+
+        diasSelecionados,
+        horariosSelecionados,
+      }),
+    })
+
+    alert("Configurações salvas!")
   }
 
   // Dados do Instagram - troque por API real depois
@@ -1189,14 +1299,22 @@ function InstagramTab({ account }: any) {
 
               <div className="mb-3">
                 <label className="mb-1 block text-xs font-semibold uppercase text-gray-600">
-                  ESCOLHA UM ARQUIVO
+                  ESCOLHA UMA IMAGEM SALVA NO DRIVE
                 </label>
-                <div className="flex gap-2">
-                  <button className="rounded border border-gray-300 px-3 py-1.5 text-xs hover:bg-gray-70">
-                    Escolher arquivo
-                  </button>
-                  <span className="py-1.5 text-xs text-gray-500">Nenhum arquivo escolhido</span>
-                </div>
+
+                <select
+                  value={selectedTemplateUrl}
+                  onChange={(e) => setSelectedTemplateUrl(e.target.value)}
+                  className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                >
+                  <option value="">Selecione uma imagem</option>
+
+                  {driveImages.map((img) => (
+                    <option key={img.id} value={img.url}>
+                      {img.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="mb-3 flex items-end gap-4">
@@ -1218,7 +1336,17 @@ function InstagramTab({ account }: any) {
               </div>
 
               <div className="rounded border border-gray-200 p-2">
-                <img src="https://via.placeholder.com/300x500/0088cc/ffffff?text=Template+Story" alt="Template" className="w-full rounded" />
+                {selectedTemplateUrl ? (
+                  <img
+                    src={selectedTemplateUrl}
+                    alt="Template selecionado"
+                    className="w-full rounded"
+                  />
+                ) : (
+                  <div className="flex h-64 items-center justify-center rounded bg-gray-100 text-sm text-gray-500">
+                    Nenhum template selecionado
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1268,7 +1396,8 @@ function InstagramTab({ account }: any) {
                   TEXTO DA RESPOSTA AUTOMÁTICA AO STORY
                 </label>
                 <textarea
-                  defaultValue="Olá, que bom que você gostou desse produto, segue o link abaixo:"
+                  value={textoRespostaStory}
+                  onChange={(e) => setTextoRespostaStory(e.target.value)}
                   className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
                   rows={3}
                 />
@@ -1282,10 +1411,14 @@ function InstagramTab({ account }: any) {
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    defaultValue="VER NA LOJA"
+                    value={textoBotaoLink}
+                    onChange={(e) => setTextoBotaoLink(e.target.value)}
                     className="flex-1 rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
                   />
-                  <button className="rounded bg-gradient-to-r from-[#833AB4] to-[#FD1D1D] px-6 py-2 text-sm font-bold text-white">
+                 <button
+                    onClick={salvarConfiguracoes}
+                    className="rounded bg-gradient-to-r from-[#833AB4] to-[#FD1D] px-6 py-2 text-sm font-bold text-white"
+                  >
                     Salvar
                   </button>
                 </div>
@@ -1379,8 +1512,10 @@ function InstagramTab({ account }: any) {
                 </button>
               </div>
 
-              <button className="flex w-full items-center justify-center gap-2 rounded bg-gradient-to-r from-[#833AB4] to-[#FD1D1D] py-2.5 text-sm font-bold text-white">
-                <Send size={14} />
+              <button
+                onClick={salvarConfiguracoes}
+                className="flex w-full items-center justify-center gap-2 rounded bg-gradient-to-r from-[#833AB4] to-[#FD1D1D] py-2.5 text-sm font-bold text-white"
+              >
                 Salvar Agendamento
               </button>
             </div>
