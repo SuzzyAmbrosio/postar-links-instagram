@@ -93,7 +93,7 @@ model InstagramAccount {
   @@index([userId])
 }
 
-model instagramConfig {
+model InstagramConfig {
   id        String           @id @default(cuid())
   accountId String           @unique
   userId    String // ADICIONA ESSA LINHA
@@ -241,13 +241,13 @@ model Link {
 }
 
 model Settings {
-  id String @id @default(cuid())
+  id     String @id @default(cuid())
   userId String @unique
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  plan String @default("FREE")
+  plan          String  @default("FREE")
   notifications Boolean @default(true)
-  theme String @default("light")
+  theme         String  @default("light")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
