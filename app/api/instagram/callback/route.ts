@@ -84,10 +84,13 @@ export async function GET(req: NextRequest) {
     })
 
     // 6. Cria config padrão
-    await prisma.InstagramConfig.upsert({
+    await prisma.instagramConfig.upsert({
       where: { accountId: account.id },
       update: {},
-      create: { accountId: account.id }
+      create: {
+        accountId: account.id,
+        userId: account.userId,
+      }
     })
 
     // 7. REDIRECIONA PRA PÁGINA DE EDIÇÃO

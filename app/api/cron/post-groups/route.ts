@@ -223,7 +223,11 @@ export async function GET() {
           continue;
         }
 
-        const selectedLink = pickLink(links, group.selectionMode, group.randomMode);
+        const selectedLink = pickLink(
+          links,
+          group.selectionMode ?? undefined,
+          group.randomMode
+        );
 
         if (!selectedLink) {
           results.push({
@@ -252,11 +256,11 @@ export async function GET() {
         // DISPARA TELEGRAM
         if (botToken && chatId) {
           const message = buildTelegramMessage({
-            title: selectedLink.title,
+            title: selectedLink.title || "Oferta selecionada",
             shortUrl,
-            customTitle: group.postTitle,
-            priceLabel: group.postPriceLabel,
-            cta: group.postCta,
+            customTitle: group.postTitle ?? undefined,
+            priceLabel: group.postPriceLabel ?? undefined,
+            cta: group.postCta ?? undefined,
             defaultMessage: settings?.telegramDefaultMessage || "",
             signature: settings?.telegramSignature || "",
           });
@@ -290,11 +294,11 @@ export async function GET() {
         // DISPARA WHATSAPP - usa API do usuário
         if (whatsappInstanceId && whatsappToken && whatsappGroupId) {
           const whatsappMessage = buildWhatsappMessage({
-            title: selectedLink.title,
+            title: selectedLink.title || "Oferta selecionada",
             shortUrl,
-            customTitle: group.postTitle,
-            priceLabel: group.postPriceLabel,
-            cta: group.postCta,
+            customTitle: group.postTitle ?? undefined,
+            priceLabel: group.postPriceLabel ?? undefined,
+            cta: group.postCta ?? undefined,
           });
 
           try {
@@ -339,11 +343,11 @@ export async function GET() {
             data: {
               userId: group.userId,
               status: "success",
-              detail: `Enviado para ${canais.join(" + ")}: ${selectedLink.title}`,
+              detail: `Enviado para ${canais.join(" + ")}: ${selectedLink.title || "Oferta selecionada"}`,
               groupId: group.id,
               groupName: group.name,
               linkId: selectedLink.id,
-              linkTitle: selectedLink.title,
+              linkTitle: selectedLink.title || "Oferta selecionada",
               telegramChatId: telegramSuccess ? chatId : undefined,
             },
           });
@@ -352,7 +356,7 @@ export async function GET() {
             groupId: group.id,
             groupName: group.name,
             status: "posted",
-            detail: `${canais.join(" + ")}: ${selectedLink.title}`,
+            detail: `${canais.join(" + ")}: ${selectedLink.title || "Oferta selecionada"}`,
           });
         } else {
           const detail = errors.join(" | ") || "Falha ao enviar";
@@ -365,7 +369,7 @@ export async function GET() {
               groupId: group.id,
               groupName: group.name,
               linkId: selectedLink.id,
-              linkTitle: selectedLink.title,
+              linkTitle: selectedLink.title || "Oferta selecionada",
             },
           });
 

@@ -31,7 +31,10 @@ export async function GET(
 
     if (!config) {
       config = await prisma.instagramConfig.create({
-        data: { accountId: id }
+        data: {
+          accountId: id,
+          userId: session.user.id,
+        },
       })
     }
 

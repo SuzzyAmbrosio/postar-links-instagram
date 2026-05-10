@@ -159,7 +159,11 @@ export async function POST(_req: Request, context: RouteContext) {
       );
     }
 
-    const selectedLink = pickLink(links, group.selectionMode, group.randomMode);
+    const selectedLink = pickLink(
+      links,
+      group.selectionMode ?? undefined,
+      group.randomMode
+    );
 
     if (!selectedLink) {
       return Response.json(
@@ -174,11 +178,11 @@ export async function POST(_req: Request, context: RouteContext) {
         : selectedLink.url;
 
     const message = buildTelegramMessage({
-      title: selectedLink.title,
+      title: selectedLink.title || "Oferta selecionada",
       shortUrl,
-      customTitle: group.postTitle,
-      priceLabel: group.postPriceLabel,
-      cta: group.postCta,
+      customTitle: group.postTitle ?? undefined,
+      priceLabel: group.postPriceLabel ?? undefined,
+      cta: group.postCta ?? undefined,
       defaultMessage: user.settings?.telegramDefaultMessage || undefined,
       signature: user.settings?.telegramSignature || undefined,
     });
@@ -213,7 +217,7 @@ export async function POST(_req: Request, context: RouteContext) {
           groupId: group.id,
           groupName: group.name,
           linkId: selectedLink.id,
-          linkTitle: selectedLink.title,
+          linkTitle: selectedLink.title || "Oferta selecionada",
           telegramChatId: chatId,
         },
       });
@@ -232,11 +236,11 @@ export async function POST(_req: Request, context: RouteContext) {
       data: {
         userId: user.id,
         status: "success",
-        detail: `Post manual enviado: ${selectedLink.title}`,
+        detail: `Post manual enviado: ${selectedLink.title || "Oferta selecionada"}`,
         groupId: group.id,
         groupName: group.name,
         linkId: selectedLink.id,
-        linkTitle: selectedLink.title,
+        linkTitle: selectedLink.title || "Oferta selecionada",
         telegramChatId: chatId,
       },
     });

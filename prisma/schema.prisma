@@ -21,12 +21,14 @@ model User {
   instagramConfigs InstagramConfig[]
   links            Link[] // ADICIONA ESSA LINHA
   settings         Settings?
-
+  groups Group[]
   accounts          Account[]
   sessions          Session[]
   instagramAccounts InstagramAccount[]
   channelConfigs    ChannelConfig[]
   postLogs          PostLog[]
+  telegramChannels TelegramChannel[]
+  whatsappGroups   WhatsappGroup[]
 
   @@map("users")
 }
@@ -220,6 +222,11 @@ model PostLog {
   instagramUsername  String?
   productLink        String?
   productTitle       String?
+  groupId        String?
+  groupName      String?
+  linkId         String?
+  linkTitle      String?
+  telegramChatId String?
 
   createdAt DateTime @default(now())
 
@@ -232,12 +239,20 @@ model Link {
   id        String   @id @default(cuid())
   url       String
   title     String?
+  shortCode String   @unique
+  clicks    Int      @default(0)
+
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  groupId   String?
+  group     Group?   @relation(fields: [groupId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+  @@index([groupId])
 }
 
 model Settings {
@@ -252,5 +267,95 @@ model Settings {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  telegramBotToken        String?
+  telegramChatId          String?
+  telegramParseMode       String?
+  telegramDisablePreview  Boolean @default(false)
+  telegramDefaultMessage  String?
+  telegramSignature       String?
+  telegramConnected Boolean @default(false)
+
+  whatsappInstanceId String?
+  whatsappToken      String?
+  whatsappGroupId    String?
+  whatsappConnected         Boolean @default(false)
+  telegramPinAfterSend      Boolean @default(false)
+
+  whatsappGroupName         String?
+  whatsappInviteLink        String?
+  whatsappDefaultMessage    String?
+  whatsappFooterCta         String?
+  whatsappIncludeInviteLink Boolean @default(false)
+  whatsappShortenText       Boolean @default(false)
+
   @@map("settings")
+}
+
+model TelegramChannel {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  chatId    String
+  avatar    String?
+  interval  Int?
+  random    Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("telegram_channels")
+}
+
+model WhatsappGroup {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  groupId   String
+  avatar    String?
+  interval  Int?
+  random    Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("whatsapp_groups")
+}
+
+model Group {
+  id              String   @id @default(cuid())
+  userId          String
+  name            String
+  internalCode    String?  @unique
+  postAuto        Boolean  @default(false)
+  isActive        Boolean  @default(true)
+  intervalMinutes Int      @default(60)
+  lastcreatedAt   DateTime?
+
+  telegramToken  String?
+  telegramChatId String?
+
+  selectionMode  String?
+  randomMode     Boolean @default(false)
+
+  postTitle      String?
+  postPriceLabel String?
+  postCta        String?
+  whatsappMessage  String?
+  shopeeAffiliateId String?
+  shopeeSubId       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  links Link[]
+
+  @@index([userId])
+  @@map("groups")
 }
